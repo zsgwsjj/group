@@ -306,6 +306,75 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
 
+        .groups-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .groups-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .groups-table th {
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 1rem;
+            border: none;
+        }
+
+        .groups-table tbody tr {
+            border-bottom: 1px solid #e9ecef;
+            transition: background-color 0.3s ease;
+        }
+
+        .groups-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .groups-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .groups-table td {
+            padding: 12px;
+            vertical-align: middle;
+            border: none;
+        }
+
+        .team-name {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 1.1rem;
+        }
+
+        .team-leader {
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .team-members {
+            color: #6c757d;
+            line-height: 1.4;
+        }
+
+        .team-count {
+            text-align: center;
+            font-weight: 600;
+            color: #28a745;
+            background: rgba(40, 167, 69, 0.1);
+            border-radius: 20px;
+            padding: 4px 8px;
+            display: inline-block;
+            min-width: 30px;
+        }
+
         .reset-btn {
             background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
             color: white;
@@ -477,6 +546,23 @@
             .modal-footer .reset-btn {
                 width: 100%;
                 margin: 0;
+            }
+
+            .groups-table {
+                font-size: 0.9rem;
+            }
+
+            .groups-table th,
+            .groups-table td {
+                padding: 8px 6px;
+            }
+
+            .groups-table th {
+                font-size: 0.9rem;
+            }
+
+            .team-name {
+                font-size: 1rem;
             }
 
             .group {
@@ -677,7 +763,11 @@
                 
                 // 当当前组达到指定人数或者是最后一个人时，完成这一组
                 if (currentGroup.length === groupSize || i === shuffledNames.length - 1) {
-                    groups.push([...currentGroup]);
+                    const teamName = generateTeamName([...currentGroup]);
+                    groups.push({
+                        name: teamName,
+                        members: [...currentGroup]
+                    });
                     currentGroup = [];
                 }
             }
@@ -685,32 +775,79 @@
             return groups;
         }
 
+        function generateTeamName(members) {
+            // 从每个队员的名字中取一个字
+            let teamName = '';
+            
+            for (let member of members) {
+                // 如果名字长度大于1，随机选择一个字
+                if (member.length > 1) {
+                    const randomIndex = Math.floor(Math.random() * member.length);
+                    teamName += member[randomIndex];
+                } else {
+                    // 如果名字只有1个字，直接使用
+                    teamName += member;
+                }
+            }
+            
+            // 加上"队"字，总共5个字
+            teamName += '队';
+            
+            return teamName;
+        }
+
         function displayGroups(groups) {
             const container = document.getElementById('groupsContainer');
             container.innerHTML = '';
 
+            // 创建表格
+            const table = document.createElement('table');
+            table.className = 'groups-table';
+
+            // 创建表头
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            headerRow.innerHTML = '<th>队名</th><th>队长</th><th>队员</th><th>人数</th>';
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+
+            // 创建表体
+            const tbody = document.createElement('tbody');
+            
             groups.forEach((group, index) => {
-                const groupDiv = document.createElement('div');
-                groupDiv.className = 'group';
+                const row = document.createElement('tr');
+                row.className = 'team-row';
                 
-                const titleDiv = document.createElement('div');
-                titleDiv.className = 'group-title';
-                titleDiv.textContent = `第 ${index + 1} 组 (${group.length}人)`;
+                // 队名列
+                const nameCell = document.createElement('td');
+                nameCell.className = 'team-name';
+                nameCell.textContent = group.name;
                 
-                const membersDiv = document.createElement('div');
-                membersDiv.className = 'group-members';
+                // 队长列（第一个成员）
+                const leaderCell = document.createElement('td');
+                leaderCell.className = 'team-leader';
+                leaderCell.textContent = group.members[0] || '';
                 
-                group.forEach(member => {
-                    const memberDiv = document.createElement('div');
-                    memberDiv.className = 'member';
-                    memberDiv.textContent = member;
-                    membersDiv.appendChild(memberDiv);
-                });
+                // 队员列
+                const membersCell = document.createElement('td');
+                membersCell.className = 'team-members';
+                const membersText = group.members.slice(1).join('、');
+                membersCell.textContent = membersText || '无';
                 
-                groupDiv.appendChild(titleDiv);
-                groupDiv.appendChild(membersDiv);
-                container.appendChild(groupDiv);
+                // 人数列
+                const countCell = document.createElement('td');
+                countCell.className = 'team-count';
+                countCell.textContent = group.members.length;
+                
+                row.appendChild(nameCell);
+                row.appendChild(leaderCell);
+                row.appendChild(membersCell);
+                row.appendChild(countCell);
+                tbody.appendChild(row);
             });
+            
+            table.appendChild(tbody);
+            container.appendChild(table);
         }
 
         function closeModal() {
@@ -718,8 +855,30 @@
         }
 
         function resetGrouping() {
-            closeModal();
-            document.getElementById('groupsContainer').innerHTML = '';
+            // 获取当前的分组参数
+            const groupSize = parseInt(document.getElementById('groupSize').value);
+            const checkboxes = document.querySelectorAll('.checkbox-item input[type="checkbox"]:checked');
+            const names = Array.from(checkboxes).map(checkbox => checkbox.value);
+
+            // 验证输入
+            if (names.length === 0) {
+                alert('请至少选择一个人参与分组！');
+                return;
+            }
+
+            if (!groupSize || groupSize < 1) {
+                alert('请输入有效的每组人数！');
+                return;
+            }
+
+            if (groupSize > names.length) {
+                alert('每组人数不能大于选中的人数！');
+                return;
+            }
+
+            // 重新随机分组
+            const groups = randomGrouping(names, groupSize);
+            displayGroups(groups);
         }
 
         // 点击弹窗外部关闭弹窗
